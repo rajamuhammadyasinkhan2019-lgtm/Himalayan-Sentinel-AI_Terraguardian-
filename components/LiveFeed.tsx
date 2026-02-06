@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { DataPacket } from '../types';
 
 interface LiveFeedProps {
@@ -9,18 +9,33 @@ interface LiveFeedProps {
 const SOURCES = ['GNSS', 'SEISMIC', 'CLIMATE', 'INSAR'] as const;
 
 const LiveFeed: React.FC<LiveFeedProps> = ({ packets }) => {
+  const [currentTime, setCurrentTime] = useState(new Date().getTime());
+
+  // Update current time every second to ensure status indicators are reactive
+  // even if no new packets arrive for a while.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date().getTime());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const sourceStatuses = useMemo(() => {
-    const now = new Date().getTime();
     return SOURCES.map(source => {
       const lastPacket = packets.find(p => p.source === source);
       if (!lastPacket) return { source, status: 'DISCONNECTED', color: 'bg-red-500' };
       
-      const diff = (now - lastPacket.timestamp.getTime()) / 1000;
-      if (diff < 12) return { source, status: 'CONNECTED', color: 'bg-green-500' };
-      if (diff < 25) return { source, status: 'INTERMITTENT', color: 'bg-yellow-500' };
-      return { source, status: 'DISCONNECTED', color: 'bg-red-500' };
+      const diff = (currentTime - lastPacket.timestamp.getTime()) / 1000;
+      
+      if (diff < 12) {
+        return { source, status: 'CONNECTED', color: 'bg-green-500' };
+      } else if (diff < 25) {
+        return { source, status: 'INTERMITTENT', color: 'bg-yellow-500' };
+      } else {
+        return { source, status: 'DISCONNECTED', color: 'bg-red-500' };
+      }
     });
-  }, [packets]);
+  }, [packets, currentTime]);
 
   return (
     <div className="flex flex-col h-64 bg-slate-950 border-t border-slate-800 font-mono text-[10px] overflow-hidden">
@@ -36,8 +51,11 @@ const LiveFeed: React.FC<LiveFeedProps> = ({ packets }) => {
           <div className="hidden md:flex items-center gap-3 border-l border-slate-800 pl-4">
             {sourceStatuses.map((s) => (
               <div key={s.source} className="flex items-center gap-1.5 group cursor-help">
-                <div className={`w-1.5 h-1.5 rounded-full ${s.color} transition-colors duration-500`}></div>
-                <span className="text-slate-500 group-hover:text-slate-300 transition-colors">{s.source}</span>
+                <div 
+                  className={`w-1.5 h-1.5 rounded-full ${s.color} transition-colors duration-500 shadow-[0_0_5px_rgba(0,0,0,0.5)]`}
+                  title={`${s.source}: ${s.status}`}
+                ></div>
+                <span className="text-slate-500 group-hover:text-slate-300 transition-colors uppercase">{s.source}</span>
               </div>
             ))}
           </div>
@@ -77,7 +95,7 @@ const LiveFeed: React.FC<LiveFeedProps> = ({ packets }) => {
         ))}
       </div>
 
-      {/* Mobile-only status row if needed or just keep it simple */}
+      {/* Mobile-only status row */}
       <div className="md:hidden flex justify-around py-1 bg-slate-900/30 border-t border-slate-900">
         {sourceStatuses.map((s) => (
           <div key={s.source} className="flex items-center gap-1">
