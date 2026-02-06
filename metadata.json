@@ -1,0 +1,8 @@
+{
+  "name": "Himalayan Sentinel AI",
+  "description": "A multimodal geoscience intelligence system for orogenic belt dynamics, seismic hazard forecasting, and cryosphere-tectonic coupling in the Himalayan-Tibetan region.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
